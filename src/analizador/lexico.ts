@@ -13,7 +13,7 @@ class AnalizadorLexico {
     private tokens: Token[] = [];
     private errores: any[] = [];
 
-    private palabrasReservadas = {
+    private palabrasReservadas: {[key: string]: string} = {
         'using': 'USING',
         'System': 'SYSTEM',
         'public': 'PUBLIC',
@@ -42,6 +42,12 @@ class AnalizadorLexico {
     }
 
     public analizar(): { tokens: Token[], errores: any[] } {
+        this.tokens = [];
+        this.errores = [];
+        this.posicion = 0;
+        this.fila = 1;
+        this.columna = 1;
+
         while (this.posicion < this.codigoFuente.length) {
             const caracter = this.codigoFuente[this.posicion];
 
@@ -137,11 +143,15 @@ class AnalizadorLexico {
         this.avanzar(); // Saltar la comilla inicial
 
         while (this.posicion < this.codigoFuente.length && this.codigoFuente[this.posicion] !== '"') {
+            if (this.esSaltoLinea(this.codigoFuente[this.posicion])) {
+                this.fila++;
+                this.columna = 1;
+            }
             valor += this.codigoFuente[this.posicion];
             this.avanzar();
         }
 
-        if (this.codigoFuente[this.posicion] === '"') {
+        if (this.posicion < this.codigoFuente.length && this.codigoFuente[this.posicion] === '"') {
             this.avanzar(); // Saltar la comilla final
             this.tokens.push({
                 tipo: 'CADENA',
@@ -164,7 +174,7 @@ class AnalizadorLexico {
         let inicioColumna = this.columna;
         this.avanzar(); // Saltar la comilla simple inicial
 
-        if (this.posicion < this.codigoFuente.length) {
+        if (this.posicion < this.codigoFuente.length && this.codigoFuente[this.posicion] !== '\'') {
             valor = this.codigoFuente[this.posicion];
             this.avanzar();
         }
@@ -182,7 +192,7 @@ class AnalizadorLexico {
                 fila: this.fila,
                 columna: inicioColumna,
                 caracter: '\'',
-                descripcion: 'Carácter no cerrado'
+                descripcion: 'Carácter no cerrado correctamente'
             });
         }
     }
@@ -219,12 +229,12 @@ class AnalizadorLexico {
             if (this.esSaltoLinea(this.codigoFuente[this.posicion])) {
                 this.fila++;
                 this.columna = 1;
+                valor += this.codigoFuente[this.posicion];
+                this.posicion++;
             } else {
-                this.columna++;
+                valor += this.codigoFuente[this.posicion];
+                this.avanzar();
             }
-            
-            valor += this.codigoFuente[this.posicion];
-            this.avanzar();
         }
 
         if (this.posicion < this.codigoFuente.length - 1 && 
@@ -277,7 +287,7 @@ class AnalizadorLexico {
     }
 
     private analizarSimbolo(caracter: string) {
-        const simbolos = {
+        const simbolos: {[key: string]: string} = {
             ';': 'PUNTO_COMA',
             '.': 'PUNTO',
             ',': 'COMA',
@@ -313,7 +323,7 @@ class AnalizadorLexico {
     }
 
     private esEspacio(caracter: string): boolean {
-        return /\s/.test(caracter) && !this.esSaltoLinea(caracter);
+        return /[ \t]/.test(caracter);
     }
 
     private esSaltoLinea(caracter: string): boolean {
@@ -321,11 +331,11 @@ class AnalizadorLexico {
     }
 
     private esOperador(caracter: string): boolean {
-        return this.operadores.some(op => op.startsWith(caracter));
+        return ['+', '-', '*', '/', '=', '!', '<', '>'].includes(caracter);
     }
 
     private esSimbolo(caracter: string): boolean {
-        return /[;,.\{\}\(\)\[\]]/.test(caracter);
+        return [';', ',', '.', '{', '}', '(', ')', '[', ']'].includes(caracter);
     }
 }
 

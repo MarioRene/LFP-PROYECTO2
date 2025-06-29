@@ -5,53 +5,144 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Transpilador C# a TypeScript</title>
     <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet">
 </head>
 <body>
-    <h1>Transpilador C# a TypeScript</h1>
-    
-    <div class="container">
-        <div class="editor-container">
-            <h2>Editor C#</h2>
-            <textarea id="editor" placeholder="Escribe tu código C# aquí..."></textarea>
-            
-            <div class="controls">
-                <button id="btn-cargar">Cargar Archivo (.cs)</button>
-                <button id="btn-guardar">Guardar Archivo (.cs)</button>
-                <button id="btn-limpiar">Limpiar Editor</button>
-                <button id="btn-analizar">Analizar</button>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo">
+                    <h1>C# → TypeScript</h1>
+                    <span class="subtitle">Transpilador y Analizador</span>
+                </div>
+                <div class="header-actions">
+                    <button id="btn-reporte-tokens" class="btn btn-outline">
+                        <span class="icon">📊</span>
+                        Tokens
+                    </button>
+                    <button id="btn-reporte-errores" class="btn btn-outline">
+                        <span class="icon">⚠️</span>
+                        Errores
+                    </button>
+                </div>
             </div>
-            
-            <h3>Consola</h3>
-            <div id="consola" class="console"></div>
-        </div>
-        
-        <div class="output-container">
-            <h2>Salida TypeScript</h2>
-            <textarea id="salida" placeholder="Aquí aparecerá el código TypeScript..." readonly></textarea>
-            
-            <div class="controls">
-                <button id="btn-guardar-ts">Guardar Archivo (.ts)</button>
-                <button id="btn-reporte-tokens">Reporte de Tokens</button>
-                <button id="btn-reporte-errores">Reporte de Errores</button>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Left Panel: Editor -->
+            <div class="panel editor-panel">
+                <div class="panel-header">
+                    <h2>Editor C#</h2>
+                    <div class="toolbar">
+                        <button id="btn-cargar" class="btn btn-sm">
+                            <span class="icon">📁</span>
+                            Cargar
+                        </button>
+                        <button id="btn-guardar" class="btn btn-sm">
+                            <span class="icon">💾</span>
+                            Guardar
+                        </button>
+                        <button id="btn-limpiar" class="btn btn-sm btn-secondary">
+                            <span class="icon">🗑️</span>
+                            Limpiar
+                        </button>
+                    </div>
+                </div>
+                <div class="editor-container">
+                    <textarea id="editor" class="code-editor" placeholder="Escribe tu código C# aquí..."></textarea>
+                    <div class="line-numbers" id="line-numbers"></div>
+                </div>
+                <div class="panel-footer">
+                    <button id="btn-analizar" class="btn btn-primary btn-large">
+                        <span class="icon">⚡</span>
+                        Analizar y Transpilar
+                    </button>
+                </div>
             </div>
-            
-            <h3>Tabla de Símbolos</h3>
-            <table id="tabla-simbolos" class="symbol-table">
-                <thead>
-                    <tr>
-                        <th>Nombre</th>
-                        <th>Tipo</th>
-                        <th>Valor</th>
-                        <th>Ámbito</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <!-- Las filas se agregarán dinámicamente -->
-                </tbody>
-            </table>
+
+            <!-- Right Panel: Output -->
+            <div class="panel output-panel">
+                <div class="panel-header">
+                    <h2>Salida TypeScript</h2>
+                    <div class="toolbar">
+                        <button id="btn-guardar-ts" class="btn btn-sm">
+                            <span class="icon">💾</span>
+                            Guardar .ts
+                        </button>
+                    </div>
+                </div>
+                <div class="output-container">
+                    <textarea id="salida" class="code-output" placeholder="Aquí aparecerá el código TypeScript..." readonly></textarea>
+                </div>
+            </div>
+        </main>
+
+        <!-- Bottom Section -->
+        <section class="bottom-section">
+            <!-- Console -->
+            <div class="console-panel">
+                <div class="panel-header">
+                    <h3>Consola de Análisis</h3>
+                    <button id="btn-clear-console" class="btn btn-sm btn-secondary">
+                        <span class="icon">🧹</span>
+                        Limpiar
+                    </button>
+                </div>
+                <div id="consola" class="console"></div>
+            </div>
+
+            <!-- Symbol Table -->
+            <div class="symbols-panel">
+                <div class="panel-header">
+                    <h3>Tabla de Símbolos</h3>
+                </div>
+                <div class="table-container">
+                    <table id="tabla-simbolos" class="symbol-table">
+                        <thead>
+                            <tr>
+                                <th>Variable</th>
+                                <th>Tipo</th>
+                                <th>Valor</th>
+                                <th>Ámbito</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Las filas se agregarán dinámicamente -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Loading Overlay -->
+        <div id="loading-overlay" class="loading-overlay hidden">
+            <div class="spinner"></div>
+            <p>Analizando código...</p>
         </div>
+
+        <!-- Modal for Reports -->
+        <div id="modal-overlay" class="modal-overlay hidden">
+            <div class="modal">
+                <div class="modal-header">
+                    <h3 id="modal-title">Reporte</h3>
+                    <button id="modal-close" class="btn-close">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <iframe id="modal-content"></iframe>
+                </div>
+            </div>
+        </div>
+
+        <!-- Toast Notifications -->
+        <div id="toast-container" class="toast-container"></div>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-csharp.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-typescript.min.js"></script>
     <script src="editor.js"></script>
 </body>
 </html>

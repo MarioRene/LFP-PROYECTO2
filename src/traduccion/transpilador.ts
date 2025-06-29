@@ -1,28 +1,19 @@
-// src/traduccion/transpilador.ts
-
 class Transpilador {
     static transpilar(ast: any): string {
-        let codigoTypeScript = '';
+        if (!ast || !ast.class || !ast.class.blockMain) {
+            return '';
+        }
 
-        // Transpilar el bloque using (no es necesario en TypeScript)
-        // Transpilar la clase
-        codigoTypeScript += Transpilador.transpilarClase(ast.class);
-
-        return codigoTypeScript;
-    }
-
-    private static transpilarClase(claseNode: any): string {
         let codigo = '';
+        const instrucciones = ast.class.blockMain.instrucciones;
 
-        // En TypeScript no necesitamos la clase Main para código simple
-        // Solo transpilamos el contenido del método Main
-        if (claseNode.blockMain && claseNode.blockMain.instrucciones) {
-            for (const instruccion of claseNode.blockMain.instrucciones) {
-                codigo += Transpilador.transpilarInstruccion(instruccion);
+        if (instrucciones && instrucciones.length > 0) {
+            for (const instruccion of instrucciones) {
+                codigo += this.transpilarInstruccion(instruccion);
             }
         }
 
-        return codigo;
+        return codigo.trim();
     }
 
     private static transpilarInstruccion(instruccion: any): string {
@@ -43,25 +34,7 @@ class Transpilador {
     }
 
     private static transpilarDeclaracion(declaracion: any): string {
-        let tipoTypeScript = '';
-        
-        switch (declaracion.tipoVariable) {
-            case 'INT_TYPE':
-            case 'FLOAT_TYPE':
-                tipoTypeScript = 'number';
-                break;
-            case 'STRING_TYPE':
-                tipoTypeScript = 'string';
-                break;
-            case 'CHAR_TYPE':
-                tipoTypeScript = 'string'; // TypeScript no tiene tipo char
-                break;
-            case 'BOOL_TYPE':
-                tipoTypeScript = 'boolean';
-                break;
-            default:
-                tipoTypeScript = 'any';
-        }
+        let tipoTypeScript = this.obtenerTipoTypeScript(declaracion.tipoVariable);
 
         let codigo = `let `;
         const variables = [];
@@ -71,6 +44,12 @@ class Transpilador {
             
             if (variable.expresion) {
                 varCode += ` = ${this.transpilarExpresion(variable.expresion)}`;
+            } else {
+                // Valor por defecto según el tipo
+                const valorDefecto = this.obtenerValorPorDefecto(tipoTypeScript);
+                if (valorDefecto !== null) {
+                    varCode += ` = ${valorDefecto}`;
+                }
             }
             
             variables.push(varCode);
@@ -92,7 +71,10 @@ class Transpilador {
         let codigo = `if (${this.transpilarExpresion(ifNode.condicion)}) {\n`;
         
         for (const instruccion of ifNode.instrucciones) {
-            codigo += `    ${this.transpilarInstruccion(instruccion)}`;
+            const instruccionCode = this.transpilarInstruccion(instruccion).trim();
+            if (instruccionCode) {
+                codigo += `    ${instruccionCode}\n`;
+            }
         }
         
         codigo += '}';
@@ -100,7 +82,10 @@ class Transpilador {
         if (ifNode.else) {
             codigo += ' else {\n';
             for (const instruccion of ifNode.else.instrucciones) {
-                codigo += `    ${this.transpilarInstruccion(instruccion)}`;
+                const instruccionCode = this.transpilarInstruccion(instruccion).trim();
+                if (instruccionCode) {
+                    codigo += `    ${instruccionCode}\n`;
+                }
             }
             codigo += '}';
         }
@@ -111,56 +96,29 @@ class Transpilador {
     private static transpilarFor(forNode: any): string {
         let codigo = 'for (';
         
-        // Primer bloque: inicialización
-        if (forNode.inicializacion.tipo === 'DECLARACION') {
-            const declaracion = forNode.inicializacion;
-            let tipoTypeScript = '';
-            
-            switch (declaracion.tipoVariable) {
-                case 'INT_TYPE':
-                case 'FLOAT_TYPE':
-                    tipoTypeScript = 'number';
-                    break;
-                case 'STRING_TYPE':
-                    tipoTypeScript = 'string';
-                    break;
-                case 'CHAR_TYPE':
-                    tipoTypeScript = 'string';
-                    break;
-                case 'BOOL_TYPE':
-                    tipoTypeScript = 'boolean';
-                    break;
-                default:
-                    tipoTypeScript = 'any';
-            }
-            
-            const variables = [];
-            for (const variable of declaracion.variables) {
-                let varCode = `${variable.id}: ${tipoTypeScript}`;
-                
-                if (variable.expresion) {
-                    varCode += ` = ${this.transpilarExpresion(variable.expresion)}`;
-                }
-                
-                variables.push(varCode);
-            }
-            
-            codigo += variables.join(', ');
-        } else if (forNode.inicializacion.tipo === 'ASIGNACION') {
+        // Inicialización
+        if (forNode.inicializacion.tipo === 'DECLARACION_FOR') {
+            const tipoTypeScript = this.obtenerTipoTypeScript(forNode.inicializacion.tipoVariable);
+            codigo += `let ${forNode.inicializacion.id}: ${tipoTypeScript} = ${this.transpilarExpresion(forNode.inicializacion.expresion)}`;
+        } else if (forNode.inicializacion.tipo === 'ASIGNACION_FOR') {
             codigo += `${forNode.inicializacion.id} = ${this.transpilarExpresion(forNode.inicializacion.expresion)}`;
         }
         
         codigo += '; ';
         
-        // Segundo bloque: condición
+        // Condición
         codigo += `${this.transpilarExpresion(forNode.condicion)}; `;
         
-        // Tercer bloque: actualización
-        codigo += `${forNode.actualizacion.id}${forNode.actualizacion.operacion === 'INCREMENTO' ? '++' : '--'}) {\n`;
+        // Actualización
+        const operadorActualizacion = forNode.actualizacion.operacion === 'INCREMENTO' ? '++' : '--';
+        codigo += `${forNode.actualizacion.id}${operadorActualizacion}) {\n`;
         
         // Cuerpo del for
         for (const instruccion of forNode.instrucciones) {
-            codigo += `    ${this.transpilarInstruccion(instruccion)}`;
+            const instruccionCode = this.transpilarInstruccion(instruccion).trim();
+            if (instruccionCode) {
+                codigo += `    ${instruccionCode}\n`;
+            }
         }
         
         codigo += '}';
@@ -174,21 +132,86 @@ class Transpilador {
         switch (expresion.tipo) {
             case 'EXPRESION_RELACIONAL':
                 return `${this.transpilarExpresion(expresion.izquierda)} ${expresion.operador} ${this.transpilarExpresion(expresion.derecha)}`;
+            
             case 'EXPRESION_ARITMETICA':
-                return `${this.transpilarExpresion(expresion.izquierda)} ${expresion.operador} ${this.transpilarExpresion(expresion.derecha)}`;
+                const izq = this.transpilarExpresion(expresion.izquierda);
+                const der = this.transpilarExpresion(expresion.derecha);
+                
+                // Manejar concatenación de strings
+                if (expresion.operador === '+') {
+                    return `${izq} + ${der}`;
+                }
+                return `${izq} ${expresion.operador} ${der}`;
+            
             case 'IDENTIFICADOR':
                 return expresion.valor;
+            
             case 'NUMERO':
-                return expresion.valor;
+                return String(expresion.valor);
+            
             case 'CARACTER':
-                return `'${expresion.valor}'`;
+                return `'${this.escaparCaracter(expresion.valor)}'`;
+            
             case 'CADENA':
-                return `"${expresion.valor}"`;
+                return `"${this.escaparCadena(expresion.valor)}"`;
+            
             case 'BOOLEAN':
                 return expresion.valor ? 'true' : 'false';
+            
             default:
                 return '';
         }
+    }
+
+    private static obtenerTipoTypeScript(tipoCSharp: string): string {
+        switch (tipoCSharp) {
+            case 'INT_TYPE':
+            case 'FLOAT_TYPE':
+                return 'number';
+            case 'STRING_TYPE':
+                return 'string';
+            case 'CHAR_TYPE':
+                return 'string';
+            case 'BOOL_TYPE':
+                return 'boolean';
+            default:
+                return 'any';
+        }
+    }
+
+    private static obtenerValorPorDefecto(tipoTypeScript: string): string | null {
+        switch (tipoTypeScript) {
+            case 'number':
+                return '0';
+            case 'string':
+                return '""';
+            case 'boolean':
+                return 'false';
+            default:
+                return null;
+        }
+    }
+
+    private static escaparCaracter(caracter: string): string {
+        const caractereEspeciales: {[key: string]: string} = {
+            '\\': '\\\\',
+            '\'': '\\\'',
+            '"': '\\"',
+            '\n': '\\n',
+            '\r': '\\r',
+            '\t': '\\t'
+        };
+        
+        return caractereEspeciales[caracter] || caracter;
+    }
+
+    private static escaparCadena(cadena: string): string {
+        return cadena
+            .replace(/\\/g, '\\\\')
+            .replace(/"/g, '\\"')
+            .replace(/\n/g, '\\n')
+            .replace(/\r/g, '\\r')
+            .replace(/\t/g, '\\t');
     }
 }
 
