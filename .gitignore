@@ -1,4 +1,1 @@
-# Archivos que no deben ser sugeridos
-# Ignorar archivos de configuración de TypeScript
-node_modules/
-dist/
+
