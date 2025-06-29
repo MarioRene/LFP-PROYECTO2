@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transpilador C# a TypeScript</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <h1>Transpilador C# a TypeScript</h1>
+    
+    <div class="container">
+        <div class="editor-container">
+            <h2>Editor C#</h2>
+            <textarea id="editor" placeholder="Escribe tu código C# aquí..."></textarea>
+            
+            <div class="controls">
+                <button id="btn-cargar">Cargar Archivo (.cs)</button>
+                <button id="btn-guardar">Guardar Archivo (.cs)</button>
+                <button id="btn-limpiar">Limpiar Editor</button>
+                <button id="btn-analizar">Analizar</button>
+            </div>
+            
+            <h3>Consola</h3>
+            <div id="consola" class="console"></div>
+        </div>
+        
+        <div class="output-container">
+            <h2>Salida TypeScript</h2>
+            <textarea id="salida" placeholder="Aquí aparecerá el código TypeScript..." readonly></textarea>
+            
+            <div class="controls">
+                <button id="btn-guardar-ts">Guardar Archivo (.ts)</button>
+                <button id="btn-reporte-tokens">Reporte de Tokens</button>
+                <button id="btn-reporte-errores">Reporte de Errores</button>
+            </div>
+            
+            <h3>Tabla de Símbolos</h3>
+            <table id="tabla-simbolos" class="symbol-table">
+                <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Tipo</th>
+                        <th>Valor</th>
+                        <th>Ámbito</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Las filas se agregarán dinámicamente -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="editor.js"></script>
+</body>
+</html>
